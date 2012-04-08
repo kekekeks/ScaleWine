@@ -31,10 +31,15 @@ class ScaledContainer : public QMainWindow
 	Qt::HANDLE dirtyMon;
 	WId wId;
 	QTimer timer;
+	class Viewport;
+	Viewport*vp;
+	double sx, sy;
+	void updateScale();
 public:
 	explicit ScaledContainer(WId winId);
-
-	virtual void paintEvent(QPaintEvent *ev);
+	virtual void resizeEvent(QResizeEvent *ev);
+	virtual bool event(QEvent *event);
+	void updatePixmap();
 signals:
 	
 public slots:

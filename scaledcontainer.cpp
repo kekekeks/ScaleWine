@@ -22,6 +22,36 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QPaintEvent>
 #include <QPainter>
 #include "xutil.h"
+
+class ScaledContainer::Viewport:public QWidget
+{
+	ScaledContainer *parent;
+
+	virtual void focusInEvent(QFocusEvent *)
+	{
+		XUtil::setInputFocus(parent->wId);
+	}
+	virtual void paintEvent(QPaintEvent *ev)
+	{
+		if(parent->xPixmap==0)
+			return;
+		QPainter painter(this);
+		painter.drawPixmap(0,0, width(), height(), parent->pixmap, 0,0, parent->pixmap.width(), parent->pixmap.height());
+
+	}
+	virtual bool x11Event(XEvent *ev)
+	{
+		XUtil::tryRedirectEvent(ev, parent->wId, parent->sx, parent->sy);
+	}
+
+public:
+	Viewport(ScaledContainer *parent):QWidget(parent)
+	{
+		this->parent=parent;
+		this->winId();//Force it to create window
+	}
+};
+
 ScaledContainer::ScaledContainer(WId winId) :
 	QMainWindow(0)
 {
@@ -31,6 +61,17 @@ ScaledContainer::ScaledContainer(WId winId) :
 	dirtyMon = XUtil::createDirtyMonitor(winId);
 	timer.start(1000);
 	connect(&timer,SIGNAL(timeout()),SLOT(resetPixmap()));
+	XUtil::reparentWindow(wId, this->winId());
+	vp=new Viewport(this);
+	vp->resize(width(), height());
+	vp->move(0,0);
+	vp->show();
+}
+
+void ScaledContainer::resizeEvent(QResizeEvent *ev)
+{
+	updateScale();
+	vp->resize(ev->size());
 }
 
 void ScaledContainer::resetPixmap()
@@ -45,18 +86,33 @@ void ScaledContainer::resetPixmap()
 	if(xPixmap!=0)
 	{
 		pixmap=QPixmap::fromX11Pixmap(xPixmap);
+		updateScale();
 		pixmap.save("wtf.png");
 	}
 
 
 }
 
-void ScaledContainer::paintEvent(QPaintEvent *ev)
-{
-	if(xPixmap==0)
-		return;
-	QPainter painter(this);
-	painter.drawPixmap(0,0, width(), height(), pixmap, 0,0, pixmap.width(), pixmap.height());
 
+
+bool ScaledContainer::event(QEvent *event)
+{
+	if(event->type()==QEvent::WindowActivate)
+		XUtil::setInputFocus(wId);
+	return QMainWindow::event(event);
+}
+
+void ScaledContainer::updatePixmap()
+{
+	vp->update();
+}
+
+void ScaledContainer::updateScale()
+{
+	if(xPixmap!=0)
+	{
+		sx=(double)pixmap.width()/(double)width();
+		sy=(double)pixmap.height()/(double)height();
+	}
 }
 

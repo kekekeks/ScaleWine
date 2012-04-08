@@ -32,5 +32,8 @@ public:
 	static void freePixmap(Qt::HANDLE pixmap);
 	static Qt::HANDLE createDirtyMonitor(WId win);
 	static WId checkDirtyMonitor (void*ev);
+	static void setInputFocus(WId win);
+	static void reparentWindow(WId target, WId parent);
+	static bool tryRedirectEvent(void*xev, WId target, double sx, double sy);
 };
 #endif // XUTIL_H

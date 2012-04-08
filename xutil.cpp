@@ -37,6 +37,7 @@ void XUtil::init(void* d)
 	XDamageQueryExtension(dpy, &damage_event_base, &damage_error_base);
 }
 
+
 WId XUtil::selectWindow()
 {
 
@@ -119,4 +120,53 @@ WId XUtil::checkDirtyMonitor(void *ev)
 	return 0;
 }
 
+void XUtil::setInputFocus(WId win)
+{
+	XSetInputFocus(dpy, win, RevertToNone, CurrentTime);
+}
 
+void XUtil::reparentWindow(WId target, WId parent)
+{
+	XReparentWindow(dpy, target, parent, 0000, 0000);
+	XFlush(dpy);
+}
+
+bool XUtil::tryRedirectEvent(void *_xev, WId target, double sx, double sy)
+{
+	XEvent *xev=(XEvent*)_xev;
+	long mask=0;
+	if(xev->type==ButtonPress)
+		mask=ButtonPressMask;
+	if(xev->type==ButtonRelease)
+		mask=ButtonReleaseMask;
+	if(mask!=0)
+	{
+		xev->xbutton.x=xev->xbutton.x*sx;
+		xev->xbutton.y=xev->xbutton.y*sy;
+		/*WId xtarget;
+		XTranslateCoordinates(dpy, xev->xany.window, target, xev->xbutton.x, xev->xbutton.y,
+							  &xev->xbutton.x, &xev->xbutton.y, &xtarget);
+		if(xtarget)
+		{
+			WId _dummy;
+			XTranslateCoordinates(dpy, target, xtarget, xev->xbutton.x, xev->xbutton.y,
+								  &xev->xbutton.x, &xev->xbutton.y, &_dummy);
+			target=xtarget;
+		}
+		*/
+	}
+	if(xev->type==MotionNotify)
+	{
+		xev->xmotion.x=xev->xmotion.x*sx;
+		xev->xmotion.y=xev->xmotion.y*sy;
+		mask=PointerMotionMask;
+	}
+
+	if(mask!=0)
+	{
+		xev->xany.window=target;
+		XSendEvent(dpy, target, 1, mask, xev);
+	}
+
+	return false;
+}

@@ -33,7 +33,7 @@ bool ScaleWine::x11EventFilter(XEvent *ev)
 		return false;
 	if(!containers.contains(id))
 		return false;
-	containers[id]->update();
+	containers[id]->updatePixmap();
 	return true;
 }
 
@@ -46,9 +46,11 @@ void ScaleWine::addWindow(WId handle)
 {
 	ScaledContainer*cont=new  ScaledContainer(handle);
 	containers[handle]=cont;
-	cont->resetPixmap();
+
+
+	//cont->resetPixmap();
 	cont->show();
-	cont->update();
+
 
 
 }
